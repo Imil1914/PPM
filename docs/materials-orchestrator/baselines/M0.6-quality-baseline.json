@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "milestone": "M0.6",
+  "captured_on": "2026-08-28",
+  "repository": {
+    "head": "96aa1be31d23182021fafbf861a79560629c02ec",
+    "branch": "feat/t1.1-sqlite",
+    "working_tree_clean": false,
+    "note": "HEAD is contextual only; the working tree also contains the accepted M0.1-M0.5 changes. Content hashes and diagnostic fingerprints identify this baseline."
+  },
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "os_version": "10.0.26200.0",
+    "powershell": "7.6.4",
+    "timezone": "Europe/Moscow"
+  },
+  "toolchain": {
+    "node": "24.5.0",
+    "npm": "11.5.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10",
+    "vite": "5.4.21",
+    "electron_vite": "2.3.0",
+    "electron": "33.4.11"
+  },
+  "hashes": {
+    "package.json": "f06453587986c82917588fe81f1a694ab308da85926ed103a6e1c0b74270a945",
+    "package-lock.json": "3a3743f8dc80d3ee65bbdae9d30ac79e6db131b528a0650023c7ecc35a2b1002",
+    "tsconfig.json": "1e74c194386aa63d4fcfbc4486dda9221fe0a33898c2a72a2d9cb3c45cb15fcf",
+    "electron.vite.config.ts": "df9d454df71469a2579da0e6e38d65be310eec582c38906dfa3edf6fd755bcbd"
+  },
+  "diagnostic_source_hashes": {
+    "src/main/orchestrator/research.ts": "04d65c9afc941b8a127b243792443eda2824dcd4ce5d2b3b161d9b6bd58ffff3",
+    "src/renderer/src/pdf/pdfjs.ts": "0c32bd67c811ff5628bb887dbcf1cd4ec64827735fb5faf168e4ea9ecfdd91d7",
+    "src/renderer/src/shapes/FlowNodeShapeUtil.tsx": "b09d246983a1cf9dedc0f9e1211b05ea76590c207ef32272e5e6b30f643c0776"
+  },
+  "tests": {
+    "command": "npm test",
+    "expected_exit_code": 0,
+    "file_count": 12,
+    "suite_count": 30,
+    "test_count": 95,
+    "passed": 95,
+    "failed": 0,
+    "skipped": 0,
+    "files": [
+      { "path": "src/main/orchestrator/__tests__/fakeRuntime.test.ts", "tests": 12 },
+      { "path": "src/main/orchestrator/__tests__/fakeRuntimeEngine.test.ts", "tests": 3 },
+      { "path": "src/main/orchestrator/__tests__/genericProfileRegression.test.ts", "tests": 3 },
+      { "path": "src/main/orchestrator/__tests__/materialsLegacyBypass.test.ts", "tests": 4 },
+      { "path": "src/main/orchestrator/__tests__/orchestratorStartIpc.test.ts", "tests": 3 },
+      { "path": "src/main/orchestrator/__tests__/typecheckBaseline.test.ts", "tests": 3 },
+      { "path": "src/main/orchestrator/__tests__/workflowProfilePropagation.test.ts", "tests": 14 },
+      { "path": "src/main/orchestrator/__tests__/workflowProfileRouting.test.ts", "tests": 13 },
+      { "path": "src/preload/__tests__/orchestratorProfileBridge.test.ts", "tests": 2 },
+      { "path": "src/renderer/src/orchestrator/__tests__/buildOrchestratorStartArgs.test.ts", "tests": 10 },
+      { "path": "src/renderer/src/shapes/schemas/__tests__/migrations.test.ts", "tests": 11 },
+      { "path": "src/shared/orchestrator/__tests__/workflowProfile.test.ts", "tests": 17 }
+    ]
+  },
+  "build": {
+    "command": "npm run build",
+    "expected_exit_code": 0,
+    "main": "passed",
+    "preload": "passed",
+    "renderer": "passed",
+    "renderer_modules_transformed": 4194
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "display_command": "npx tsc --noEmit --pretty false",
+    "expected_exit_code": 2,
+    "raw_run_repetitions": 2,
+    "diagnostic_count": 13,
+    "file_count": 3,
+    "fingerprint_count": 9,
+    "fingerprints": [
+      {
+        "id": "TSC-001",
+        "file": "src/main/orchestrator/research.ts",
+        "code": 18048,
+        "message": "'plan.facets' is possibly 'undefined'.",
+        "allowed_count": 2,
+        "locations": [
+          {
+            "line": 56,
+            "column": 79,
+            "symbol": "researchPhase/status.facets",
+            "source_anchor": "summary: `Ресерч: ${plan.facets.length} граней`"
+          },
+          {
+            "line": 61,
+            "column": 19,
+            "symbol": "researchPhase/facet-loop",
+            "source_anchor": "for (const f of plan.facets.slice(0, 6))"
+          }
+        ]
+      },
+      {
+        "id": "TSC-002",
+        "file": "src/renderer/src/pdf/pdfjs.ts",
+        "code": 2307,
+        "message": "Cannot find module 'pdfjs-dist/build/pdf.worker.min.mjs?url' or its corresponding type declarations.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 6,
+            "column": 23,
+            "symbol": "workerUrl-import",
+            "source_anchor": "import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'"
+          }
+        ]
+      },
+      {
+        "id": "TSC-003",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'timeoutMs' does not exist in type '{ model: string; messages: ChatMessage[]; images?: string[] | undefined; }'.",
+        "allowed_count": 3,
+        "locations": [
+          {
+            "line": 627,
+            "column": 5,
+            "symbol": "digestDayRange/aiChat.timeoutMs",
+            "source_anchor": "timeoutMs: 90000"
+          },
+          {
+            "line": 658,
+            "column": 5,
+            "symbol": "rollupMemory/aiChat.timeoutMs",
+            "source_anchor": "timeoutMs: 90000"
+          },
+          {
+            "line": 10010,
+            "column": 9,
+            "symbol": "DayLaneBody.digest/aiChat.timeoutMs",
+            "source_anchor": "timeoutMs: 90000"
+          }
+        ]
+      },
+      {
+        "id": "TSC-004",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2345,
+        "message": "Argument of type '(p: any) => string' is not assignable to parameter of type 'string'.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 2646,
+            "column": 48,
+            "symbol": "CodeRequestBody/MicButton.onText",
+            "source_anchor": "setInstruction((p) => (p ? p.replace(/\\s*$/, '') + ' ' + t : t))"
+          }
+        ]
+      },
+      {
+        "id": "TSC-005",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 7006,
+        "message": "Parameter 'p' implicitly has an 'any' type.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 2646,
+            "column": 49,
+            "symbol": "CodeRequestBody/MicButton.onText.param",
+            "source_anchor": "setInstruction((p) => (p ? p.replace(/\\s*$/, '') + ' ' + t : t))"
+          }
+        ]
+      },
+      {
+        "id": "TSC-006",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2322,
+        "message": "Type '({ slide: Slide; image: string; } | null)[]' is not assignable to type 'ExportItem[]'.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 3721,
+            "column": 5,
+            "symbol": "DeckBody.collectSlides/map",
+            "source_anchor": "return ids"
+          }
+        ]
+      },
+      {
+        "id": "TSC-007",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2677,
+        "message": "A type predicate's type must be assignable to its parameter's type.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 3733,
+            "column": 25,
+            "symbol": "DeckBody.collectSlides/filter",
+            "source_anchor": ".filter((x): x is ExportItem => !!x)"
+          }
+        ]
+      },
+      {
+        "id": "TSC-008",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2322,
+        "message": "Type 'Editor' is not assignable to type 'void'.",
+        "allowed_count": 2,
+        "locations": [
+          {
+            "line": 5973,
+            "column": 31,
+            "symbol": "NotebookBody.persist",
+            "source_anchor": "const persist = (): void => update({ history: JSON.stringify({ cells: nb.current }) })"
+          },
+          {
+            "line": 6222,
+            "column": 59,
+            "symbol": "PdfNodeBody.setEx",
+            "source_anchor": "const setEx = (patch: Record<string, unknown>): void => update({ extra: JSON.stringify({ ...ex, ...patch }) })"
+          }
+        ]
+      },
+      {
+        "id": "TSC-009",
+        "file": "src/renderer/src/shapes/FlowNodeShapeUtil.tsx",
+        "code": 2339,
+        "message": "Property 'depth' does not exist on type 'OStatus'.",
+        "allowed_count": 1,
+        "locations": [
+          {
+            "line": 7124,
+            "column": 16,
+            "symbol": "OrchestratorBody/onOrchStatus.depth",
+            "source_anchor": "if ((m.depth || 0) > 0) return"
+          }
+        ]
+      }
+    ]
+  },
+  "comparison_policy": {
+    "fingerprint_fields": ["file", "code", "message"],
+    "line_and_column_are_informational": true,
+    "require_exact_multiset": true,
+    "unexpected_diagnostic": "regression",
+    "missing_diagnostic": "manifest reduction required before acceptance",
+    "typescript_version_change": "stop and review baseline",
+    "tsconfig_hash_change": "stop and review baseline",
+    "new_allowance": "forbidden in ordinary implementation cards"
+  }
+}

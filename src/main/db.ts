@@ -8,6 +8,8 @@
 //   board_memory  — выжимки памяти доски (день/неделя/месяц);
 //   board_meta    — пер-борд флаги (таймлайн и пр.);
 //   memory_fts    — FTS5-индекс по контенту выжимок (+ триггеры синхронизации).
+//   materials_projects        — проекты профиля materials_rnd;
+//   materials_object_versions — неизменяемые версии доменных payload.
 //
 // Надёжность: повреждение/отсутствие flow.db не роняет приложение — файл
 // бэкапится и пересоздаётся, ошибка пишется в лог, статус доступен через getDbStatus().
@@ -17,6 +19,7 @@ import type { Database as BetterSqlite3Database, Statement } from 'better-sqlite
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, renameSync } from 'fs'
+import { applyDatabaseMigrations, DatabaseMigrationError } from './db/migrations'
 
 export type PeriodKind = 'day' | 'week' | 'month'
 
@@ -56,111 +59,32 @@ function backupDir(): string {
 let db: BetterSqlite3Database | null = null
 let status: DbStatus = { ok: false, recreated: false }
 
-// --- Миграции схемы БД. Каждая — чистая функция vN, номер = порядок применения. ---
-type Migration = { version: number; up: (d: BetterSqlite3Database) => void }
-
-const MIGRATIONS: Migration[] = [
-  {
-    version: 1,
-    up: (d) => {
-      d.exec(`
-        CREATE TABLE IF NOT EXISTS board_memory (
-          id          INTEGER PRIMARY KEY AUTOINCREMENT,
-          board_id    TEXT NOT NULL,
-          period_kind TEXT NOT NULL DEFAULT 'day',
-          period_key  TEXT NOT NULL,
-          content     TEXT NOT NULL,
-          created_at  INTEGER NOT NULL,
-          updated_at  INTEGER NOT NULL,
-          UNIQUE(board_id, period_kind, period_key)
-        );
-        CREATE INDEX IF NOT EXISTS idx_board_memory_board ON board_memory(board_id, period_key);
-
-        CREATE TABLE IF NOT EXISTS board_meta (
-          board_id TEXT NOT NULL,
-          key      TEXT NOT NULL,
-          value    TEXT NOT NULL,
-          PRIMARY KEY (board_id, key)
-        );
-
-        CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts
-          USING fts5(content, content='board_memory', content_rowid='id');
-
-        CREATE TRIGGER IF NOT EXISTS board_memory_ai AFTER INSERT ON board_memory BEGIN
-          INSERT INTO memory_fts(rowid, content) VALUES (new.id, new.content);
-        END;
-        CREATE TRIGGER IF NOT EXISTS board_memory_ad AFTER DELETE ON board_memory BEGIN
-          INSERT INTO memory_fts(memory_fts, rowid, content) VALUES ('delete', old.id, old.content);
-        END;
-        CREATE TRIGGER IF NOT EXISTS board_memory_au AFTER UPDATE ON board_memory BEGIN
-          INSERT INTO memory_fts(memory_fts, rowid, content) VALUES ('delete', old.id, old.content);
-          INSERT INTO memory_fts(rowid, content) VALUES (new.id, new.content);
-        END;
-      `)
-    }
-  },
-  {
-    // T4.1: глобальный поиск по нодам всех досок. Отдельная (не external-content) FTS5:
-    // переиндексация доски = DELETE по board_id + INSERT — простая инвалидация удалённых нод.
-    version: 2,
-    up: (d) => {
-      d.exec(`
-        CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
-          board_id UNINDEXED,
-          board_name UNINDEXED,
-          shape_id UNINDEXED,
-          kind,
-          title,
-          body,
-          tokenize='unicode61 remove_diacritics 2'
-        );
-      `)
-    }
-  },
-  {
-    // T2.4: эмбеддинги выжимок памяти доски (для retrieval вместо «вся память в контекст»).
-    version: 3,
-    up: (d) => {
-      d.exec(`
-        CREATE TABLE IF NOT EXISTS memory_embeddings (
-          board_id    TEXT NOT NULL,
-          period_kind TEXT NOT NULL,
-          period_key  TEXT NOT NULL,
-          vector      BLOB NOT NULL,
-          updated_at  INTEGER NOT NULL,
-          PRIMARY KEY (board_id, period_kind, period_key)
-        );
-      `)
-    }
-  }
-]
-
-function runMigrations(d: BetterSqlite3Database): void {
-  d.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);`)
-  const applied = new Set<number>(
-    (d.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map((r) => r.version)
-  )
-  const insert = d.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)')
-  for (const m of MIGRATIONS.slice().sort((a, b) => a.version - b.version)) {
-    if (applied.has(m.version)) continue
-    const tx = d.transaction(() => {
-      m.up(d)
-      insert.run(m.version, nowMs())
-    })
-    tx()
-  }
+function assertDatabaseIntegrity(d: BetterSqlite3Database): void {
+  const result = d.pragma('quick_check', { simple: true }) as string
+  if (result !== 'ok') throw new Error(`integrity check: ${result}`)
 }
 
 function openFresh(path: string): BetterSqlite3Database {
   const d = new Database(path)
-  d.pragma('journal_mode = WAL')
-  d.pragma('synchronous = NORMAL')
-  d.pragma('foreign_keys = ON')
-  runMigrations(d)
-  // Целостность после открытия (быстрая проверка); при повреждении бросит/вернёт не 'ok'.
-  const integ = d.pragma('quick_check', { simple: true }) as string
-  if (integ !== 'ok') throw new Error(`integrity check: ${integ}`)
-  return d
+  try {
+    d.pragma('journal_mode = WAL')
+    d.pragma('synchronous = NORMAL')
+    d.pragma('foreign_keys = ON')
+    // Physical corruption must be classified before migration SQL can wrap it as a
+    // DatabaseMigrationError. That keeps the existing backup/recovery path available.
+    assertDatabaseIntegrity(d)
+    applyDatabaseMigrations(d)
+    // A second check verifies the fully migrated database before it becomes observable.
+    assertDatabaseIntegrity(d)
+    return d
+  } catch (error) {
+    try {
+      d.close()
+    } catch {
+      /* ignore close failure while preserving the original error */
+    }
+    throw error
+  }
 }
 
 /** Открыть БД (лениво). Повреждённый файл бэкапится и БД пересоздаётся. */
@@ -173,6 +97,11 @@ export function getDb(): BetterSqlite3Database {
     return db
   } catch (e) {
     const msg = String((e as Error)?.message || e)
+    if (e instanceof DatabaseMigrationError) {
+      status = { ok: false, recreated: false, error: msg }
+      console.error('[db] Миграция БД не выполнена; исходный файл сохранён:', msg)
+      throw e
+    }
     // Попытка восстановления: увести повреждённый файл в backup/ и создать заново.
     try {
       if (existsSync(path)) {

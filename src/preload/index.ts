@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { WorkflowProfile } from '../shared/orchestrator/workflowProfile'
 
 // Preload — безопасный мост между окном (renderer) и системой (main).
 // Здесь мы выставляем в окно объект window.flow с функциями,
@@ -168,6 +169,7 @@ const api = {
     model?: string
     budget?: Record<string, number>
     materials?: string
+    workflowProfile?: WorkflowProfile
   }) => ipcRenderer.invoke('orch:start', args),
   orchCancel: (args: { projectId: string }) => ipcRenderer.invoke('orch:cancel', args),
   orchHumanDecision: (args: {

@@ -45,13 +45,18 @@ Get-Process -Name Flow -ErrorAction SilentlyContinue | Stop-Process -Force
 ```bash
 npx tsc --noEmit
 ```
-Есть **предсуществующие** ошибки, не связанные с твоими правками — их можно
-игнорировать (сборка через esbuild всё равно проходит):
-- `FlowNodeShapeUtil.tsx` — несколько (exporter `ExportItem`, `OStatus.depth`,
-  `setInstruction`, notebook/openscience `Editor→void`).
-- `pdf/pdfjs.ts` — `Cannot find module '...pdf.worker.min.mjs?url'` (это Vite `?url`-импорт).
+Raw typecheck пока содержит ровно **13 принятых диагностик технического долга**.
+Единственный нормативный список находится в
+[`docs/materials-orchestrator/baselines/M0.6-quality-baseline.json`](docs/materials-orchestrator/baselines/M0.6-quality-baseline.json),
+а правила сравнения — в
+[`docs/materials-orchestrator/10-engineering-quality-baseline.md`](docs/materials-orchestrator/10-engineering-quality-baseline.md).
 
-После своих изменений сверяйся: новых ошибок в затронутых файлах быть не должно.
+`npm test` запускает baseline guard и сравнивает точное мультимножество
+`project-relative file + TS code + primary message`. Нельзя игнорировать ошибку только
+потому, что она находится в старом файле или имеет знакомый код. Новый/изменённый
+fingerprint — регрессия. Исчезнувшую ошибку нужно удалить из manifest в той же карточке,
+чтобы её возврат не остался разрешённым. Смена TypeScript или `tsconfig.json` требует
+явного пересмотра baseline.
 
 ## Добавить новый вид ноды (частый паттерн)
 
@@ -108,8 +113,9 @@ npx wrangler deploy       # выведет https://flow-sync.<subdomain>.workers
    и не отдавать в renderer в открытом виде.
 5. **Без телеметрии.** Исходящие запросы — только к настроенным провайдерам и API из задач.
 6. **UI-строки — по-русски**, в стиле существующего интерфейса.
-7. **После каждой задачи:** typecheck чистый, `npm run build` проходит, smoke (открыть старую
-   доску, создать по ноде основных kind, простой ран оркестратора, дроп PDF), запись в CHANGELOG.
+7. **После каждой задачи:** baseline guard чистый, raw typecheck не содержит ничего сверх
+   M0.6 manifest, `npm run build` проходит, smoke (открыть старую доску, создать по ноде
+   основных kind, простой ран оркестратора, дроп PDF), запись в CHANGELOG.
 
 Вопросы «на выбор исполнителя» — решать самому и фиксировать в CHANGELOG; «согласовать с
 владельцем» — останавливаться и спрашивать.

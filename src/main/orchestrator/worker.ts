@@ -14,12 +14,13 @@ import type {
   NodeRequirements,
   TaskResult,
   Budget,
-  TraceEntry,
+  TraceDraft,
   StatusEvent,
   HumanDecision,
   ChatMessage
 } from './contracts'
-import { orchestrate } from './engine'
+import { orchestrateWorkflowProfile } from './profiles'
+import { stampTraceEntry, toOrchestrateOpts } from './profilePropagation'
 
 const wd = workerData as WorkerData
 const port = parentPort!
@@ -98,7 +99,7 @@ const rt: Runtime = {
       (reqId) => ({ t: 'findCandidates', reqId, req }),
       (m) => (m.t === 'findCandidatesRes' ? m.entries : [])
     ),
-  trace: (entry: TraceEntry) => post({ t: 'trace', entry }),
+  trace: (entry: TraceDraft) => post({ t: 'trace', entry: stampTraceEntry(entry, wd.workflowProfile) }),
   status: (ev: Omit<StatusEvent, 'project_id' | 'depth'>) => post({ t: 'status', ev }),
   humanRequest: (req) =>
     request<HumanDecision>(
@@ -165,14 +166,7 @@ const rt: Runtime = {
 // --- Точка входа ---
 ;(async () => {
   try {
-    const result = await orchestrate(rt, {
-      goal: wd.goal,
-      budget: wd.budget,
-      depth: wd.depth,
-      materials: wd.materials,
-      plannerModel: wd.plannerModel,
-      branch: wd.branch || ''
-    })
+    const result = await orchestrateWorkflowProfile(rt, toOrchestrateOpts(wd))
     post({ t: 'result', result })
   } catch (e) {
     post({

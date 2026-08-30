@@ -2,6 +2,7 @@
 // Meta-Orchestrator — контракты (типы) уровня control-plane / data-plane.
 // Единый источник правды для main-брокера, воркеров и режимов исполнения.
 // ============================================================================
+import type { WorkflowProfile } from '../../shared/orchestrator/workflowProfile'
 
 // --- Режимы исполнения (раздел 3 ТЗ) ---
 export type ExecutionMode = 'pipeline' | 'council' | 'actor_critic' | 'ensemble' | 'recursive'
@@ -26,6 +27,7 @@ export type TaskNode = {
 export type TaskTree = {
   project_id: string
   goal: string
+  workflow_profile?: WorkflowProfile // отсутствует у деревьев, сохранённых до M0.2
   tasks: TaskNode[]
 }
 
@@ -94,7 +96,7 @@ export type NodeRequirements = {
 }
 
 // --- Запись трейса (раздел 5 ТЗ) ---
-export type TraceEntry = {
+export type TraceDraft = {
   command_id: string
   task_id: string
   node_id: string
@@ -106,6 +108,10 @@ export type TraceEntry = {
   timestamp: number
   parent_command_id?: string
   note?: string
+}
+
+export type TraceEntry = TraceDraft & {
+  workflow_profile: WorkflowProfile
 }
 
 // --- Событие статуса подзадачи (для живой панели ноды) ---
@@ -150,7 +156,7 @@ export interface Runtime {
   // Реестр узлов
   findCandidates(req: NodeRequirements): Promise<NodeRegistryEntry[]>
   // Трейсинг
-  trace(entry: TraceEntry): void
+  trace(entry: TraceDraft): void
   status(ev: Omit<StatusEvent, 'project_id' | 'depth'>): void
   // Human-in-the-loop (блокирует ТОЛЬКО свою ветку)
   humanRequest(req: Omit<HumanRequest, 'request_id' | 'project_id'>): Promise<HumanDecision>
@@ -270,6 +276,7 @@ export type WorkerData = {
   depth: number
   materials: string[] // ключи Vault с исходными материалами
   plannerModel: string
+  workflowProfile: WorkflowProfile
   branch: string // префикс task_id этой ветки (root = '', саб = 's{depth}_{n}~…') — уникальность id между ветками
   cancelBuf: SharedArrayBuffer // Int32Array[0] !== 0 → отмена всего прогона
 }

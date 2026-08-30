@@ -20,6 +20,13 @@ import {
 } from './vault'
 import { findCandidates, getRegistry, upsertNode } from './registry'
 import { BudgetManager, deriveSubBudget } from './budget'
+import { parseOrchestratorStartInput } from './startInput'
+import {
+  createChildWorkerLaunchData,
+  createRunStartedTraceEntry,
+  createWorkerData,
+  type WorkerLaunchData
+} from './profilePropagation'
 import {
   DEFAULT_BUDGET,
   type Budget,
@@ -87,9 +94,17 @@ function estTokens(messages: Array<{ content: string }>, content: string): numbe
 }
 
 // Обёртка над одним воркером (root или саб). Возвращает его финальный TaskResult.
-function spawnWorker(run: RunState, wd: Omit<WorkerData, 'projectId' | 'cancelBuf'>): Promise<TaskResult> {
+function spawnWorker(run: RunState, wd: WorkerLaunchData): Promise<TaskResult> {
   return new Promise<TaskResult>((resolve) => {
-    const fullWd: WorkerData = { ...wd, projectId: run.projectId, cancelBuf: run.cancelBuf }
+    const fullWd = createWorkerData({ projectId: run.projectId, cancelBuf: run.cancelBuf }, wd)
+    const startedEntry = createRunStartedTraceEntry({
+      projectId: run.projectId,
+      branch: wd.branch,
+      depth: wd.depth,
+      workflowProfile: wd.workflowProfile
+    })
+    vaultAppendLog(run.projectId, startedEntry.task_id, { kind: 'trace', ...startedEntry })
+    send(run, 'orch:trace', { projectId: run.projectId, entry: startedEntry })
     let worker: Worker
     try {
       worker = new Worker(workerPath(), { workerData: fullWd })
@@ -152,7 +167,7 @@ function failResult(goal: string, issue: string): TaskResult {
 // Централизованная обработка запросов воркера.
 async function handleWorkerMessage(
   run: RunState,
-  wd: Omit<WorkerData, 'projectId' | 'cancelBuf'>,
+  wd: WorkerLaunchData,
   msg: WorkerToMain,
   reply: (m: MainToWorker) => void,
   done: (r: TaskResult) => void
@@ -297,14 +312,16 @@ async function handleWorkerMessage(
       // Уникальный branch-префикс ветки: глубина + счётчик прогона (сиблинги на
       // одной глубине не сталкиваются). Все task_id саб-дерева получат этот префикс.
       const childBranch = `${wd.branch || ''}s${nextDepth}_${run.subCounter++}~`
-      const result = await spawnWorker(run, {
-        goal: msg.goal,
-        budget: msg.budget,
-        depth: nextDepth,
-        materials: msg.materials,
-        plannerModel: wd.plannerModel,
-        branch: childBranch
-      })
+      const result = await spawnWorker(
+        run,
+        createChildWorkerLaunchData(wd, {
+          goal: msg.goal,
+          budget: msg.budget,
+          depth: nextDepth,
+          materials: msg.materials,
+          branch: childBranch
+        })
+      )
       reply({ t: 'spawnSubRes', reqId: msg.reqId, result })
       return
     }
@@ -335,8 +352,14 @@ export function registerOrchestratorIpc(d: Deps): void {
     'orch:start',
     async (
       e,
-      args: { goal: string; model?: string; budget?: Partial<Budget>; materials?: string }
+      rawArgs: unknown
     ): Promise<{ ok: boolean; projectId?: string; error?: string }> => {
+      let args
+      try {
+        args = parseOrchestratorStartInput(rawArgs)
+      } catch {
+        return { ok: false, error: 'Некорректные параметры или профиль запуска оркестратора' }
+      }
       if (!args.goal || !args.goal.trim()) return { ok: false, error: 'Пустое описание проекта' }
       const projectId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
       const budget: Budget = { ...DEFAULT_BUDGET, ...(args.budget || {}) }
@@ -364,7 +387,15 @@ export function registerOrchestratorIpc(d: Deps): void {
 
       const plannerModel = args.model || deps.getDefaultModel()
       // Запускаем root-воркер асинхронно; клиенту сразу отдаём projectId.
-      spawnWorker(run, { goal: args.goal, budget, depth: 0, materials, plannerModel, branch: '' })
+      spawnWorker(run, {
+        goal: args.goal,
+        budget,
+        depth: 0,
+        materials,
+        plannerModel,
+        workflowProfile: args.workflowProfile,
+        branch: ''
+      })
         .then((result) => {
           run.finished = true
           send(run, 'orch:done', { projectId, result })

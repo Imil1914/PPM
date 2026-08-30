@@ -40,6 +40,12 @@ import { renderMermaidCode } from '../slides/mermaid'
 import { NodeIcon } from '../os/nodeIcons'
 import { parseAndMigrateExtra, markCorrupt, clearCorrupt, isExtraCorrupt, corruptRaw } from './schemas'
 import { encode as gptEncode } from 'gpt-tokenizer'
+import {
+  DEFAULT_WORKFLOW_PROFILE,
+  WorkflowProfileSchema,
+  type WorkflowProfile
+} from '../../../shared/orchestrator/workflowProfile'
+import { buildOrchestratorStartArgs } from '../orchestrator/buildOrchestratorStartArgs'
 
 // T3.1: приближённая оценка токенов (gpt-tokenizer, cl100k). В UI помечаем «≈».
 export function estimateTokens(text: string): number {
@@ -6813,6 +6819,7 @@ type OTrace = {
   cost: { tokens: number; calls: number }
   duration_ms: number
   note?: string
+  workflow_profile: WorkflowProfile
 }
 type OHuman = { request_id: string; task_id: string; reason: string; best_summary: string }
 
@@ -7049,6 +7056,7 @@ function OrchestratorBody({ shape, editor }: { shape: FlowNodeShape; editor: Edi
     max_parallel_nodes?: number
     sci?: boolean
     sciToKb?: boolean
+    workflowProfile?: unknown
   } = {}
   try {
     ex = JSON.parse(shape.props.extra || '{}')
@@ -7063,6 +7071,7 @@ function OrchestratorBody({ shape, editor }: { shape: FlowNodeShape; editor: Edi
   const maxDepth = ex.max_recursion_depth ?? 2
   const maxIter = ex.max_iterations_per_mode ?? 3
   const maxParallel = ex.max_parallel_nodes ?? 4
+  const workflowProfileResult = WorkflowProfileSchema.safeParse(ex.workflowProfile ?? DEFAULT_WORKFLOW_PROFILE)
   const overlayOn = (ex as { canvasOverlay?: boolean }).canvasOverlay !== false // по умолчанию вкл.
   const overlayEnabledRef = useRef(overlayOn)
   overlayEnabledRef.current = overlayOn
@@ -7172,6 +7181,10 @@ function OrchestratorBody({ shape, editor }: { shape: FlowNodeShape; editor: Edi
   const start = async () => {
     const goal = (body || '').trim()
     if (!goal) return
+    if (!workflowProfileResult.success) {
+      setRootDone('Ошибка запуска: некорректный профиль оркестрации')
+      return
+    }
     // Убрать прошлый canvas-оверлей этой мета-ноды перед новым прогоном.
     try {
       clearOverlay(editor, shape.id)
@@ -7221,17 +7234,20 @@ function OrchestratorBody({ shape, editor }: { shape: FlowNodeShape; editor: Edi
       }
     }
     const materials = ctxParts.join('\n\n---\n\n')
-    const res = await window.flow.orchStart({
-      goal,
-      model,
-      materials: materials || undefined,
-      budget: {
-        project_token_budget: budgetLimit,
-        max_recursion_depth: maxDepth,
-        max_iterations_per_mode: maxIter,
-        max_parallel_nodes: maxParallel
-      }
-    })
+    const res = await window.flow.orchStart(
+      buildOrchestratorStartArgs({
+        goal,
+        model,
+        materials: materials || undefined,
+        workflowProfile: workflowProfileResult.data,
+        budget: {
+          project_token_budget: budgetLimit,
+          max_recursion_depth: maxDepth,
+          max_iterations_per_mode: maxIter,
+          max_parallel_nodes: maxParallel
+        }
+      })
+    )
     if (res.ok && res.projectId) {
       setProjectId(res.projectId)
       projectRef.current = res.projectId
@@ -7455,8 +7471,37 @@ function OrchestratorBody({ shape, editor }: { shape: FlowNodeShape; editor: Edi
           }}
         >
           <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-            Лимиты оркестрации
+            Профиль и лимиты оркестрации
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.textDim }}>
+            профиль
+            <select
+              value={workflowProfileResult.success ? workflowProfileResult.data : ''}
+              onChange={(e) => setEx({ workflowProfile: e.currentTarget.value })}
+              disabled={running}
+              style={{
+                flex: 1,
+                minWidth: 170,
+                border: `1px solid ${C.border}`,
+                background: C.field,
+                color: C.text,
+                borderRadius: 7,
+                padding: '4px 7px',
+                fontSize: 11,
+                cursor: running ? 'not-allowed' : 'pointer',
+                opacity: running ? 0.65 : 1
+              }}
+            >
+              {!workflowProfileResult.success && <option value="">Некорректное значение</option>}
+              <option value="generic">Обычный</option>
+              <option value="materials_rnd">Материаловедческий</option>
+            </select>
+          </label>
+          {workflowProfileResult.success && workflowProfileResult.data === 'materials_rnd' && (
+            <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.35 }}>
+              Пока профиль только маркирует запуск; отдельный материаловедческий маршрут подключается следующим этапом.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 11, color: C.textDim }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               токены

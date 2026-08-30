@@ -1,4 +1,6 @@
 // Описание для TypeScript: что за объект window.flow появился из preload
+import type { WorkflowProfile } from '../../shared/orchestrator/workflowProfile'
+
 export {}
 
 type ChatMessage = { role: 'user' | 'assistant' | 'system'; content: string }
@@ -276,6 +278,7 @@ declare global {
           max_recursion_depth: number
         }>
         materials?: string
+        workflowProfile?: WorkflowProfile
       }) => Promise<{ ok: boolean; projectId?: string; error?: string }>
       orchCancel: (args: { projectId: string }) => Promise<{ ok: boolean }>
       orchHumanDecision: (args: {
@@ -418,6 +421,7 @@ export type OrchTraceEntry = {
   timestamp: number
   parent_command_id?: string
   note?: string
+  workflow_profile: WorkflowProfile
 }
 export type OrchStatus = {
   projectId: string

@@ -16,6 +16,7 @@ import { execute as actorCritic } from './modes/actorCritic'
 import { execute as council } from './modes/council'
 import { execute as ensemble } from './modes/ensemble'
 import { execute as recursive } from './modes/recursive'
+import type { WorkflowProfile } from '../../shared/orchestrator/workflowProfile'
 
 const MODE_FNS: Record<ExecutionMode, ModeFn> = {
   pipeline,
@@ -31,10 +32,41 @@ export type OrchestrateOpts = {
   depth: number
   materials: string[]
   plannerModel: string
+  workflowProfile: WorkflowProfile
   branch?: string // префикс task_id ветки (уникальность id между root и саб-оркестраторами)
 }
 
-export async function orchestrate(rt: Runtime, opts: OrchestrateOpts): Promise<TaskResult> {
+type LegacyEnginePhasePolicy = Readonly<{
+  enableWebBuildPhase: boolean
+  enableLectureAssembly: boolean
+}>
+
+const GENERIC_PHASE_POLICY: LegacyEnginePhasePolicy = Object.freeze({
+  enableWebBuildPhase: true,
+  enableLectureAssembly: true
+})
+
+const MATERIALS_PHASE_POLICY: LegacyEnginePhasePolicy = Object.freeze({
+  enableWebBuildPhase: false,
+  enableLectureAssembly: false
+})
+
+export function orchestrate(rt: Runtime, opts: OrchestrateOpts): Promise<TaskResult> {
+  return orchestrateWithPhasePolicy(rt, opts, GENERIC_PHASE_POLICY)
+}
+
+export function orchestrateMaterialsLegacyBridge(
+  rt: Runtime,
+  opts: OrchestrateOpts
+): Promise<TaskResult> {
+  return orchestrateWithPhasePolicy(rt, opts, MATERIALS_PHASE_POLICY)
+}
+
+async function orchestrateWithPhasePolicy(
+  rt: Runtime,
+  opts: OrchestrateOpts,
+  phasePolicy: LegacyEnginePhasePolicy
+): Promise<TaskResult> {
   const { budget, depth, materials, plannerModel } = opts
   const branch = opts.branch || ''
   rt.status({ task_id: 'root', status: 'running', summary: opts.goal })
@@ -73,7 +105,7 @@ export async function orchestrate(rt: Runtime, opts: OrchestrateOpts): Promise<T
   // оркестратор строит настоящие ноды: канбаны/таблицы/списки/документы/схемы/заметки.
   // Опирается на сводку ресерча. Если веб-сборка что-то дала — ЗАМЫКАЕМ прогон: дешёвый
   // локальный planner/modes/lecture не запускаем. Веб-нод нет / пусто → идём обычным путём.
-  if (depth === 0 && !rt.isCancelled()) {
+  if (phasePolicy.enableWebBuildPhase && depth === 0 && !rt.isCancelled()) {
     try {
       const built = await webBuildPhase(rt, opts.goal, researchSummary)
       if (built.ran && built.result) {
@@ -108,7 +140,11 @@ export async function orchestrate(rt: Runtime, opts: OrchestrateOpts): Promise<T
   }
   const byId = new Map(tasks.map((t) => [t.id, t]))
   // Дерево — в Vault (персистентность) и в renderer (для панели).
-  await rt.vaultWrite(`project:${rt.projectId}/tree`, JSON.stringify({ goal: opts.goal, tasks }), { kind: 'tree' })
+  await rt.vaultWrite(
+    `project:${rt.projectId}/tree`,
+    JSON.stringify({ goal: opts.goal, workflow_profile: opts.workflowProfile, tasks }),
+    { kind: 'tree' }
+  )
   rt.status({ task_id: '__tree__', status: 'pending', summary: JSON.stringify(tasks) })
 
   const results = new Map<string, TaskResult>()
@@ -245,7 +281,7 @@ export async function orchestrate(rt: Runtime, opts: OrchestrateOpts): Promise<T
   await Promise.allSettled(inflight.values())
 
   // --- Сборка финальной лекции (скилл lecture-forge, стадия 5), для научных тем ---
-  if (scientific && !rt.isCancelled()) {
+  if (phasePolicy.enableLectureAssembly && scientific && !rt.isCancelled()) {
     try {
       const doneResults = [...results.values()].filter((r) => r.status === 'success' || r.status === 'partial')
       const outKeys = doneResults.map((r) => r.output_vault_key).filter(Boolean)
