@@ -1,0 +1,37 @@
+{
+  "$schema": "./baseline-manifest.schema.json",
+  "schemaVersion": 1,
+  "component": "Plane Community",
+  "version": "1.4.2",
+  "releaseTag": "v1.4.2",
+  "commit": "5f7d92784c403f76284f0f16718f320221dc7fec",
+  "submodulePath": "plane-fork",
+  "forkRepository": "https://github.com/Imil1914/plane.git",
+  "upstreamRepository": "https://github.com/makeplane/plane.git",
+  "integrationBranch": "ppm/integration-v1.4.2",
+  "license": {
+    "spdx": "AGPL-3.0-only",
+    "packageDeclaration": "AGPL-3.0",
+    "licenseFile": "LICENSE.txt",
+    "copyrightFile": "COPYRIGHT.txt"
+  },
+  "runtime": {
+    "composeFile": "plane-fork/deployments/cli/community/docker-compose.yml",
+    "composeCompatibilityFile": "infra/plane/docker-compose.compat.yml",
+    "environmentTemplate": "plane-fork/deployments/cli/community/variables.env",
+    "environmentFile": "infra/plane/.runtime/plane.env",
+    "applicationRelease": "v1.4.2",
+    "httpUrl": "http://127.0.0.1:8080",
+    "node": ">=22.18.0",
+    "packageManager": "pnpm@11.3.0",
+    "minioImage": "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+  },
+  "integrity": {
+    "LICENSE.txt": "0a4acb10f33c93841a8eedac172152096383ceaf7eb5a0aa7e303951cf204c7e",
+    "COPYRIGHT.txt": "ad1bf05b64103bacbc72763e6e24b4a9e0f80fbaad12630935a67783258c8a0e",
+    "package.json": "d281d4be4439fb979214d892e7d07e91a7aea3e4e1d933ec1bb8d28279d4372e",
+    "deployments/cli/community/docker-compose.yml": "ce2dc6829df5a31c482f8a29ad339ef4a26a9cc213e201ad6823d5e0f93f832b",
+    "deployments/cli/community/variables.env": "64db1740913f288d6c6af9f4824c020cde139591ac7dd555b02836dca86a1e06"
+  },
+  "ppmPatches": []
+}

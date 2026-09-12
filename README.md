@@ -13,7 +13,8 @@ Plane-powered · AntyFlow-faced · Vault-backed · Graph/RAG-assisted · Git-con
 - **в коде сейчас** — рабочий desktop-прототип AntyFlow на Electron, React и tldraw;
 - **целевая система** — многокомандный web-продукт PPM с Plane Community как внутренним движком;
 - **актуальное ТЗ** — редакция Intelligence-first v3;
-- **следующая задача** — чистый и воспроизводимый baseline Plane `v1.4.2` по карточке I0.1.
+- **I0.1 готова к review владельца** — чистый Plane `v1.4.2` закреплён, а golden path и persistence после restart подтверждены CI;
+- **следующая задача после приёмки I0.1** — PPM brand foundation и token bridge по карточке I0.2.
 
 Это важно: существующий Electron-код не выдаётся за готовую web-платформу. Он служит проверенным источником Canvas, Vault, графа, AI-нод и других функций, которые будут переноситься поэтапно.
 
@@ -93,6 +94,18 @@ npm run dist
 
 Перед `npm run dist` закройте запущенный `Flow.exe`: Windows может заблокировать замену файлов в `release/`.
 
+## Запуск Plane baseline
+
+Plane Community подключён отдельным Git submodule и закреплён на release `v1.4.2`, commit `5f7d92784c403f76284f0f16718f320221dc7fec`. Для получения исходников после обычного clone выполните:
+
+```bash
+git submodule update --init --recursive
+npm run plane:bootstrap
+npm run plane:verify
+```
+
+Полный безопасный запуск, golden smoke и restart-проверка: [infra/plane/README.md](infra/plane/README.md). Лицензия и происхождение Plane зафиксированы в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Настройка AI в прототипе
 
 1. Откройте командное меню `Ctrl+K`.
@@ -109,6 +122,8 @@ src/preload/              безопасный bridge между main и rendere
 src/renderer/src/         React UI, Canvas, shapes, Vault и инструменты
 sync-server/              Cloudflare Worker для tldraw real-time sync
 scripts/                  подготовка sidecars и сборочные утилиты
+plane-fork/               чистый Plane Community v1.4.2 (Git submodule)
+infra/plane/              manifest, runbook и runtime-проверки Plane
 docs/                     техническая и продуктовая документация
 docs/project-spec/        полный экспорт документации PPM
 AGENTS.md                  обязательные правила для Codex и других агентов
