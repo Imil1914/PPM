@@ -1,0 +1,103 @@
+name: Plane baseline
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/plane-baseline.yml"
+      - ".gitmodules"
+      - "infra/plane/**"
+      - "plane-fork"
+      - "scripts/plane-baseline/**"
+      - "package.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/plane-baseline.yml"
+      - ".gitmodules"
+      - "infra/plane/**"
+      - "plane-fork"
+      - "scripts/plane-baseline/**"
+      - "package.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plane-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-and-runtime:
+    name: Source, golden path and restart
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout PPM and Plane
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Use Node.js 22.18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: Verify pinned source
+        run: |
+          npm run plane:bootstrap
+          npm run plane:verify
+
+      - name: Prepare isolated environment
+        id: plane-env
+        run: |
+          npm run plane:env
+          npm run plane:env:check
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate official Compose model
+        run: >-
+          docker compose
+          --env-file infra/plane/.runtime/plane.env
+          -f plane-fork/deployments/cli/community/docker-compose.yml
+          -f infra/plane/docker-compose.compat.yml
+          config --quiet
+
+      - name: Start unmodified Plane v1.4.2
+        run: >-
+          docker compose
+          --env-file infra/plane/.runtime/plane.env
+          -f plane-fork/deployments/cli/community/docker-compose.yml
+          -f infra/plane/docker-compose.compat.yml
+          up -d
+
+      - name: Exercise golden path
+        run: npm run plane:smoke
+
+      - name: Restart services without deleting volumes
+        run: >-
+          docker compose
+          --env-file infra/plane/.runtime/plane.env
+          -f plane-fork/deployments/cli/community/docker-compose.yml
+          -f infra/plane/docker-compose.compat.yml
+          restart
+
+      - name: Verify persisted state
+        run: npm run plane:smoke:verify
+
+      - name: Record container resource usage
+        run: docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+      - name: Show service state on failure
+        if: failure() && steps.plane-env.outputs.created == 'true'
+        run: >-
+          docker compose
+          --env-file infra/plane/.runtime/plane.env
+          -f plane-fork/deployments/cli/community/docker-compose.yml
+          -f infra/plane/docker-compose.compat.yml
+          ps
+
+      - name: Show redacted backend logs on failure
+        if: failure() && steps.plane-env.outputs.created == 'true'
+        run: npm run plane:logs:redacted

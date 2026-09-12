@@ -35,3 +35,6 @@ Opensciens/
 .env.*
 providers.json
 auth.json
+
+# Локальное окружение и результаты проверок Plane baseline
+infra/plane/.runtime/

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Imil1914/PPM/blob/main/infra/plane/baseline-manifest.schema.json",
+  "title": "PPM Plane baseline manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "component",
+    "version",
+    "releaseTag",
+    "commit",
+    "submodulePath",
+    "forkRepository",
+    "upstreamRepository",
+    "integrationBranch",
+    "license",
+    "runtime",
+    "integrity",
+    "ppmPatches"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "component": { "const": "Plane Community" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "releaseTag": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "submodulePath": { "type": "string", "minLength": 1 },
+    "forkRepository": { "type": "string", "format": "uri" },
+    "upstreamRepository": { "type": "string", "format": "uri" },
+    "integrationBranch": { "type": "string", "minLength": 1 },
+    "license": {
+      "type": "object",
+      "required": ["spdx", "packageDeclaration", "licenseFile", "copyrightFile"]
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["composeFile", "composeCompatibilityFile", "environmentTemplate", "environmentFile", "applicationRelease", "httpUrl", "minioImage"]
+    },
+    "integrity": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "ppmPatches": {
+      "type": "array",
+      "maxItems": 0
+    }
+  }
+}

@@ -22,7 +22,7 @@ updated: 2026-09-12
 
 | Задача | P | Статус | Зависит от | Результат |
 |---|---:|---|---|---|
-| [I0.1 — Fork, pin, лицензия и чистый baseline Plane](<I0.1 — Fork, pin, лицензия и чистый baseline Plane.md>) | P0 | `ready` | решение владельца | воспроизводимый Plane engine |
+| [I0.1 — Fork, pin, лицензия и чистый baseline Plane](<I0.1 — Fork, pin, лицензия и чистый baseline Plane.md>) | P0 | `review` | решение владельца | Plane v1.4.2 и golden/restart gate подтверждены CI |
 | [I0.2 — PPM brand foundation и token bridge](<I0.2 — PPM brand foundation и token bridge.md>) | P0 | `planned` | I0.1 | темы/assets/components PPM |
 | [I0.3 — PPM shell, русская локализация и первый вход](<I0.3 — PPM shell, русская локализация и первый вход.md>) | P0 | `planned` | I0.2 | пользователь не видит Plane на основном пути |
 | [I0.4 — Web Canvas route и browser-safe AntyFlow core](<I0.4 — Web Canvas route и browser-safe AntyFlow core.md>) | P0 | `planned` | I0.3 | открывается `Мозг проекта` |
@@ -53,4 +53,4 @@ updated: 2026-09-12
 
 ## Следующее действие
 
-Открыть рабочую копию `C:\Users\Имиль Ермолов\Desktop\PPM`, проверить фактическое состояние и выполнить только I0.1. Создание fork/remote и публикация commits являются внешними действиями и требуют отдельного разрешения владельца в момент выполнения.
+Проверить pull request I0.1 и при желании вручную пройти UI smoke. После решения владельца принять I0.1 либо вернуть замечания; до этого I0.2 не начинать.

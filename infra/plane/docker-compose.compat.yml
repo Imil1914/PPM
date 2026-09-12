@@ -1,0 +1,5 @@
+services:
+  plane-minio:
+    # Plane v1.4.2 references the retired Docker Hub location. This is the
+    # official MinIO Quay image, pinned to the final open-source release tag.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
