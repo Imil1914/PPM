@@ -9,6 +9,8 @@ const repositoryRoot = resolve(scriptDirectory, "../..");
 const manifestPath = resolve(repositoryRoot, "infra/plane/baseline-manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 const planeDirectory = resolve(repositoryRoot, manifest.submodulePath);
+const expectedCommit = manifest.integrationCommit || manifest.commit;
+const patches = Array.isArray(manifest.ppmPatches) ? manifest.ppmPatches : [];
 const failures = [];
 
 function check(condition, message) {
@@ -28,11 +30,26 @@ function git(directory, ...args) {
   }
 }
 
-check(manifest.schemaVersion === 1, "Unsupported baseline manifest schema.");
+function gitSucceeds(directory, ...args) {
+  try {
+    execFileSync("git", args, {
+      cwd: directory,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+check(manifest.schemaVersion === 2, "Unsupported baseline manifest schema.");
 check(manifest.version === "1.4.2", "Plane version is not pinned to 1.4.2.");
 check(manifest.releaseTag === `v${manifest.version}`, "Release tag and version disagree.");
 check(/^[0-9a-f]{40}$/.test(manifest.commit), "Plane commit is not a full SHA-1.");
-check(Array.isArray(manifest.ppmPatches) && manifest.ppmPatches.length === 0, "Baseline contains PPM patches.");
+check(/^[0-9a-f]{40}$/.test(expectedCommit), "Plane integration commit is not a full SHA-1.");
+check(patches.length > 0, "PPM patch chain is missing.");
+check(patches.at(-1)?.commit === expectedCommit, "Last PPM patch is not the pinned integration commit.");
+check(new Set(patches.map((patch) => patch.taskId)).size === patches.length, "PPM patch task IDs must be unique.");
 check(existsSync(planeDirectory), "Plane submodule directory is missing; run npm run plane:bootstrap.");
 
 if (existsSync(planeDirectory)) {
@@ -40,10 +57,27 @@ if (existsSync(planeDirectory)) {
   const tagCommit = git(planeDirectory, "rev-list", "-n", "1", manifest.releaseTag);
   const originUrl = git(planeDirectory, "remote", "get-url", "origin");
   const status = git(planeDirectory, "status", "--porcelain", "--untracked-files=all");
-  check(head === manifest.commit, `Submodule HEAD is ${head}; expected ${manifest.commit}.`);
+  check(head === expectedCommit, `Submodule HEAD is ${head}; expected ${expectedCommit}.`);
   check(tagCommit === manifest.commit, `${manifest.releaseTag} resolves to ${tagCommit}; expected ${manifest.commit}.`);
   check(originUrl === manifest.forkRepository, `Plane origin is ${originUrl}; expected ${manifest.forkRepository}.`);
   check(status === "", "Plane submodule contains tracked or untracked changes.");
+  check(
+    gitSucceeds(planeDirectory, "merge-base", "--is-ancestor", manifest.commit, expectedCommit),
+    "Pinned Plane integration is not descended from the immutable upstream baseline."
+  );
+
+  for (const patch of patches) {
+    check(/^I[0-9]+\.[0-9]+$/.test(patch.taskId), `Invalid PPM patch task ID: ${patch.taskId}.`);
+    check(/^[0-9a-f]{40}$/.test(patch.commit), `PPM patch ${patch.taskId} does not use a full commit SHA-1.`);
+    check(
+      gitSucceeds(planeDirectory, "merge-base", "--is-ancestor", manifest.commit, patch.commit),
+      `PPM patch ${patch.taskId} is not descended from the baseline.`
+    );
+    check(
+      gitSucceeds(planeDirectory, "merge-base", "--is-ancestor", patch.commit, expectedCommit),
+      `PPM patch ${patch.taskId} is not contained in the pinned integration.`
+    );
+  }
 
   const packageJson = JSON.parse(readFileSync(resolve(planeDirectory, "package.json"), "utf8"));
   check(packageJson.version === manifest.version, "Plane package.json version disagrees with manifest.");
@@ -89,4 +123,5 @@ if (failures.length > 0) {
 }
 
 console.log(`Plane baseline verified: ${manifest.releaseTag} @ ${manifest.commit}`);
-console.log(`${Object.keys(manifest.integrity).length} integrity checks passed; no PPM patches detected.`);
+console.log(`Plane integration verified: ${expectedCommit} (${patches.length} PPM patch).`);
+console.log(`${Object.keys(manifest.integrity).length} immutable baseline integrity checks passed.`);

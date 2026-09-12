@@ -1,10 +1,11 @@
 {
   "$schema": "./baseline-manifest.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "component": "Plane Community",
   "version": "1.4.2",
   "releaseTag": "v1.4.2",
   "commit": "5f7d92784c403f76284f0f16718f320221dc7fec",
+  "integrationCommit": "7e6aa54d5130c3c6d00f6b5392750f916ad4303d",
   "submodulePath": "plane-fork",
   "forkRepository": "https://github.com/Imil1914/plane.git",
   "upstreamRepository": "https://github.com/makeplane/plane.git",
@@ -33,5 +34,12 @@
     "deployments/cli/community/docker-compose.yml": "ce2dc6829df5a31c482f8a29ad339ef4a26a9cc213e201ad6823d5e0f93f832b",
     "deployments/cli/community/variables.env": "64db1740913f288d6c6af9f4824c020cde139591ac7dd555b02836dca86a1e06"
   },
-  "ppmPatches": []
+  "ppmPatches": [
+    {
+      "taskId": "I0.2",
+      "commit": "7e6aa54d5130c3c6d00f6b5392750f916ad4303d",
+      "summary": "PPM brand foundation, token bridge and reversible Plane presentation",
+      "rollback": "Set PPM_BRAND_ENABLED=0 or revert the isolated I0.2 integration commit"
+    }
+  ]
 }
