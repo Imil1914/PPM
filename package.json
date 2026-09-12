@@ -4,6 +4,9 @@
   "description": "Локальный AI-холст (Figma + Miro + Docs + локальные модели)",
   "main": "./out/main/index.js",
   "author": "Flow",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
