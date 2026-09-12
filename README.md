@@ -13,8 +13,9 @@ Plane-powered · AntyFlow-faced · Vault-backed · Graph/RAG-assisted · Git-con
 - **в коде сейчас** — рабочий desktop-прототип AntyFlow на Electron, React и tldraw;
 - **целевая система** — многокомандный web-продукт PPM с Plane Community как внутренним движком;
 - **актуальное ТЗ** — редакция Intelligence-first v3;
-- **I0.1 готова к review владельца** — чистый Plane `v1.4.2` закреплён, а golden path и persistence после restart подтверждены CI;
-- **следующая задача после приёмки I0.1** — PPM brand foundation и token bridge по карточке I0.2.
+- **I0.1 принята** — чистый Plane `v1.4.2` закреплён, а golden path и persistence после restart подтверждены CI;
+- **I0.2 готова к review владельца** — добавлены обратимые PPM brand foundation, Graphite/Light tokens и legal/source surface;
+- **следующая задача после приёмки I0.2** — PPM shell, русская локализация и первый вход по карточке I0.3.
 
 Это важно: существующий Electron-код не выдаётся за готовую web-платформу. Он служит проверенным источником Canvas, Vault, графа, AI-нод и других функций, которые будут переноситься поэтапно.
 
@@ -96,7 +97,7 @@ npm run dist
 
 ## Запуск Plane baseline
 
-Plane Community подключён отдельным Git submodule и закреплён на release `v1.4.2`, commit `5f7d92784c403f76284f0f16718f320221dc7fec`. Для получения исходников после обычного clone выполните:
+Plane Community подключён отдельным Git submodule. Неизменяемый upstream baseline закреплён на release `v1.4.2`, commit `5f7d92784c403f76284f0f16718f320221dc7fec`; применённая цепочка PPM-патчей отдельно зафиксирована в `infra/plane/baseline-manifest.json`. Для получения исходников после обычного clone выполните:
 
 ```bash
 git submodule update --init --recursive
@@ -122,7 +123,7 @@ src/preload/              безопасный bridge между main и rendere
 src/renderer/src/         React UI, Canvas, shapes, Vault и инструменты
 sync-server/              Cloudflare Worker для tldraw real-time sync
 scripts/                  подготовка sidecars и сборочные утилиты
-plane-fork/               чистый Plane Community v1.4.2 (Git submodule)
+plane-fork/               Plane Community v1.4.2 + проверяемая цепочка PPM-патчей
 infra/plane/              manifest, runbook и runtime-проверки Plane
 docs/                     техническая и продуктовая документация
 docs/project-spec/        полный экспорт документации PPM
@@ -138,7 +139,7 @@ AGENTS.md                  обязательные правила для Codex 
 5. Реализовать изменение, выполнить указанные проверки и оформить небольшой reviewable commit.
 6. Не ставить `accepted` самостоятельно: финальную приёмку делает владелец.
 
-Первая исполнительная карточка: [I0.1 — Fork, pin, лицензия и чистый baseline Plane](<docs/project-spec/Документация PPM/Intelligence-first/tasks/I0.1 — Fork, pin, лицензия и чистый baseline Plane.md>).
+Следующая исполнительная карточка после review I0.2: [I0.3 — PPM shell, русская локализация и первый вход](<docs/project-spec/Документация PPM/Intelligence-first/tasks/I0.3 — PPM shell, русская локализация и первый вход.md>).
 
 ## Безопасность
 

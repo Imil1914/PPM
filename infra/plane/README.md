@@ -1,6 +1,6 @@
 # Plane Community baseline для PPM
 
-Этот каталог фиксирует чистый, немодифицированный Plane Community `v1.4.2` как первый строительный блок PPM. Исходники Plane подключены Git submodule в `plane-fork`; код PPM пока не меняет их поведение или интерфейс.
+Этот каталог фиксирует неизменяемый Plane Community `v1.4.2` как первый строительный блок PPM и отдельно описывает проверяемую цепочку PPM-патчей. Исходники подключены Git submodule в `plane-fork`; исходный release/tag и его контрольные суммы остаются самостоятельным audit boundary.
 
 ## Зафиксированный источник
 
@@ -10,10 +10,11 @@
 | Fork | `https://github.com/Imil1914/plane.git` |
 | Integration branch | `ppm/integration-v1.4.2` |
 | Release | `v1.4.2` |
-| Commit | `5f7d92784c403f76284f0f16718f320221dc7fec` |
+| Baseline commit | `5f7d92784c403f76284f0f16718f320221dc7fec` |
+| Integration commit | `7e6aa54d5130c3c6d00f6b5392750f916ad4303d` |
 | License | AGPL-3.0-only |
 
-Машиночитаемая фиксация и контрольные суммы находятся в `baseline-manifest.json`. Массив `ppmPatches` намеренно пуст: ребрендинг начинается только в I0.2.
+Машиночитаемая фиксация находится в `baseline-manifest.json`: поле `commit` хранит upstream baseline, `integrationCommit` — точную ревизию поставки, а `ppmPatches` — обозримую цепочку PPM-изменений. Первая запись относится к I0.2; её можно визуально отключить через `PPM_BRAND_ENABLED=0` без изменения данных.
 
 ## Требования
 
@@ -22,7 +23,7 @@
 - Node.js 22.18+ для служебных проверок baseline;
 - свободные порты `8080` и `8443`.
 
-## Чистый запуск
+## Запуск закреплённой интеграции
 
 ```bash
 git clone --recurse-submodules https://github.com/Imil1914/PPM.git

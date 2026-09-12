@@ -10,6 +10,7 @@
     "version",
     "releaseTag",
     "commit",
+    "integrationCommit",
     "submodulePath",
     "forkRepository",
     "upstreamRepository",
@@ -21,11 +22,12 @@
   ],
   "properties": {
     "$schema": { "type": "string" },
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "component": { "const": "Plane Community" },
     "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "releaseTag": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "integrationCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "submodulePath": { "type": "string", "minLength": 1 },
     "forkRepository": { "type": "string", "format": "uri" },
     "upstreamRepository": { "type": "string", "format": "uri" },
@@ -45,7 +47,18 @@
     },
     "ppmPatches": {
       "type": "array",
-      "maxItems": 0
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "commit", "summary", "rollback"],
+        "properties": {
+          "taskId": { "type": "string", "pattern": "^I[0-9]+\\.[0-9]+$" },
+          "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "summary": { "type": "string", "minLength": 1 },
+          "rollback": { "type": "string", "minLength": 1 }
+        }
+      }
     }
   }
 }
